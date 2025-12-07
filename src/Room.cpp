@@ -54,33 +54,14 @@ void Room::display() const {
         }
         cout << "" << endl;
     }
-    cout << "Exits:";
+    cout << "Exits: ";
     bool first = true;
-    if(exits.find("north")->second) {
-        cout << " north";
+    for(map<string, Room*>::const_iterator it = exits.begin(); it != exits.end(); ++it) {
+        if(!first) cout << ", ";
+        cout << it->first;
         first = false;
     }
-    if(exits.find("south")->second) {
-        if(!first) {cout << ", south"; }
-        else { 
-            cout << " south";
-            first = false;
-        }
-    }
-    if(exits.find("east")->second) {
-        if(!first) {cout << ", east"; }
-        else { 
-            cout << " east";
-            first = false;
-        }
-    }    
-    if(exits.find("west")->second) {
-        if(!first) {cout << ", west"; }
-        else { 
-            cout << " west";
-            first = false;
-        }
-    }
+    cout << endl;
     cout << "========================================" << endl;
 }
 
@@ -112,6 +93,8 @@ void Room::displayExits() const {
 //
 void Room::addExit(const std::string& direction, Room* room) {
     // TODO: Add exit to map
+    if(!room) {return;}
+    exits[direction] = room;
 }
 
 
@@ -123,7 +106,9 @@ void Room::addExit(const std::string& direction, Room* room) {
 //
 Room* Room::getExit(const std::string& direction) const {
     // TODO: Look up and return exit
-    return NULL;  // REPLACE THIS
+    map<string, Room*>::const_iterator it = exits.find(direction);
+    if(it == exits.end()) {return NULL;}
+    return it->second;
 }
 
 
@@ -131,8 +116,10 @@ Room* Room::getExit(const std::string& direction) const {
 // HINTS:
 // - Check if direction exists in exits map
 bool Room::hasExit(const std::string& direction) const {
-    // TODO: Check if exit exists
-    return false;  // REPLACE THIS
+    // TODO: Check if exit exist
+    map<string, Room*>::const_iterator it = exits.find(direction);
+    if(it == exits.end()) {return false;}
+    return true;  // REPLACE THIS
 }
 
 
@@ -143,6 +130,8 @@ bool Room::hasExit(const std::string& direction) const {
 //
 void Room::clearMonster() {
     // TODO: Delete and clear monster
+    if(monster){delete monster;}
+    monster = NULL;
 }
 
 
@@ -153,6 +142,8 @@ void Room::clearMonster() {
 //
 void Room::addItem(Item* item) {
     // TODO: Add item to room
+    if(!item) {return;}
+    items.push_back(item);
 }
 
 
@@ -163,6 +154,17 @@ void Room::addItem(Item* item) {
 //
 void Room::removeItem(const std::string& item_name) {
     // TODO: Find and remove item from room
+    for(int i = 0; i < items.size(); i++) {
+        string current = items[i]->getName();
+        string currentLower = "";
+        string itemLower = "";
+        for(int j = 0; j < current.size(); j++) {currentLower += tolower(current[j]);}
+        for(int k = 0; k < item_name.size(); k++) {itemLower += tolower(item_name[k]);}
+        if(itemLower == currentLower) {
+            items.erase(items.begin() + i);
+            break;
+        }
+    }
 }
 
 
@@ -173,6 +175,7 @@ void Room::removeItem(const std::string& item_name) {
 //
 void Room::displayItems() const {
     // TODO: Display all items in room
+    for(int i = 0; i < items.size(); i++) {cout << " -" << items[i]->getName() << endl;}
 }
 
 
@@ -184,5 +187,16 @@ void Room::displayItems() const {
 //
 Item* Room::getItem(const std::string& item_name) {
     // TODO: Find and return item pointer
-    return NULL;  // REPLACE THIS
+        for(int i = 0; i < items.size(); i++) {
+        string current = items[i]->getName();
+        string currentLower = "";
+        string itemLower = "";
+        for(int j = 0; j < current.size(); j++) {currentLower += tolower(current[j]);}
+        for(int k = 0; k < item_name.size(); k++) {itemLower += tolower(item_name[k]);}
+        if(itemLower == currentLower) {
+            return items[i];
+            break;
+        }
+    }
+    return NULL;
 }

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+using namespace std;
 
 // TODO: Implement Game constructor
 Game::Game() : player(NULL), current_room(NULL), 
@@ -12,6 +13,13 @@ Game::Game() : player(NULL), current_room(NULL),
 // TODO: Implement Game destructor
 Game::~Game() {
     // TODO: Clean up player and all rooms
+    if(player) {
+        delete player;
+        player = NULL;
+    }
+    for(map<string, Room*>::const_iterator it = world.begin(); it != world.end(); ++it) {
+        delete it->second;
+    }
 }
 
 
@@ -44,17 +52,39 @@ Game::~Game() {
 //
 void Game::initializeWorld() {
     // TODO: Create rooms
-    // Room* entrance = new Room("Dungeon Entrance", "A dark stone corridor...");
-    
+    Room* entrance = new Room("Dungeon Entrance", "A dark stone corridor...");
+    Room* hallway = new Room("Dungeon Hallway", "A long dreary hall, lit by the occasianal torch...");
+    Room* armory = new Room("Dungeon Armory", "A small storage room filled with weapon and armor stands now mostly abandoned...");
+    Room* treasury = new Room("Dungeon Treasury", "A cold stone room filled with chests and finery...");
+    Room* throne_room = new Room("Throne Room","A grand hall filled with fractured stone columns and a singular gold laden throne atop a chiseled stair...");
+
     // TODO: Add rooms to world
-    
+    addRoom(entrance);
+    addRoom(hallway);
+    addRoom(armory);
+    addRoom(treasury);
+    addRoom(throne_room);
+
     // TODO: Connect rooms bidirectionally
-    
+    connectRooms(entrance->getName(), "north", hallway->getName());
+    connectRooms(hallway->getName(), "west", armory->getName());
+    connectRooms(hallway->getName(), "east", treasury->getName());
+    connectRooms(hallway->getName(), "north", throne_room->getName());
+
     // TODO: Add monsters
-    
+    hallway->setMonster(new Goblin());
+    armory->setMonster(new Skeleton());
+    treasury->setMonster(new Skeleton());
+    throne_room->setMonster(new Dragon());
+
     // TODO: Add items
+    entrance->addItem(new Consumable("Small Potion", "A small healing potion", 10));
+    armory->addItem(new Weapon("Iron Sword", "A sturdy blade", 5));
+    armory->addItem(new Armor("Chain Mail", "Heavy protective armor", 3));
+    treasury->addItem(new Consumable("Health Potion", "A powerful healing potion", 20));
     
     // TODO: Set starting room
+    current_room = entrance;
 }
 
 
@@ -66,6 +96,8 @@ void Game::initializeWorld() {
 //
 void Game::createStartingInventory() {
     // TODO: Give player starting items
+    player->addItem(new Weapon("Rusty Dagger", "A crude shiv, rusted beyond belief", 2));
+    player->addItem(new Consumable("Bread", "A small loaf of bread", 5));
 }
 
 
@@ -77,6 +109,8 @@ void Game::createStartingInventory() {
 //
 void Game::addRoom(Room* room) {
     // TODO: Add room to world map
+    if(!room) {return;}
+    world[room->getName()] = room;
 }
 
 
@@ -93,6 +127,24 @@ void Game::addRoom(Room* room) {
 void Game::connectRooms(const std::string& room1_name, const std::string& direction,
                        const std::string& room2_name) {
     // TODO: Connect rooms bidirectionally
+    if(!world[room1_name] || !world[room2_name]) {return;}
+    else if(direction == "north") {
+        world[room1_name]->addExit("north", world[room2_name]);
+        world[room2_name]->addExit("south", world[room1_name]);
+    }
+    else if(direction == "south") {
+        world[room1_name]->addExit("south", world[room2_name]);
+        world[room2_name]->addExit("north", world[room1_name]);
+    }
+    else if(direction == "west") {
+        world[room1_name]->addExit("west", world[room2_name]);
+        world[room2_name]->addExit("east", world[room1_name]);
+    }
+    else if(direction == "east") {
+        world[room1_name]->addExit("east", world[room2_name]);
+        world[room2_name]->addExit("west", world[room1_name]);
+    }
+    else {return;}
 }
 
 
@@ -115,6 +167,34 @@ void Game::connectRooms(const std::string& room1_name, const std::string& direct
 //
 void Game::run() {
     // TODO: Implement main game loop
+    string playerName, input;
+    cout << "-~-~-~-~-~-~-~WELCOME TO THE DUNGEON-~-~-~-~-~-~-~" << endl;
+    cout << "What is your name, adventurer? " << endl;
+    getline(cin, playerName);
+    player = new Player(playerName);
+    cout << "" << endl;
+    initializeWorld();
+    createStartingInventory();
+    current_room->display();
+    current_room->markVisited();
+    while(1) {
+        cout << "> ";
+        getline(cin, input);
+        transform(input.begin(), input.end(), input.begin(), ::tolower);
+        processCommand(input);
+        if(!world["Throne_Room"]->getMonster()->isAlive()) {
+            cout << "-~-~-~-~-~-~-~YOU WIN!-~-~-~-~-~-~-~" << endl;
+            cout << "ECE 312 Final Project" << endl;
+            cout << "Programmed by: Elijah Spadini" << endl;
+            cout << "Thanks to: Prof. Speight, Asvin Kumar, Logan Bristol, and Jonathan Cats" << endl;
+            break;
+        }
+        else if(game_over || !player->isAlive()) {
+            cout << "-~-~-~-~-~-~-~YOU LOSE!-~-~-~-~-~-~-~" << endl;
+            cout << "skill issue buddy. this game is supposed to be easy lol" << endl;
+            break;
+        }
+    }   
 }
 
 
@@ -137,6 +217,24 @@ void Game::run() {
 //
 void Game::processCommand(const std::string& command) {
     // TODO: Parse and dispatch command
+    string verb, object;
+    if(command.empty()) {return;}
+    istringstream iss(command);
+    iss >> verb;
+    getline(iss, object);
+    size_t pos = object.find_first_not_of(' '); //AI helped me with syntax here.
+    if (pos != string::npos) {object = object.substr(pos);} // if found (not "no position") extract from that position onward
+    else {object.clear();}   // if not found (all spaces)
+    if(verb == "go" || verb == "move") {move(object);}
+    else if(verb == "look" || verb == "l") {look();}
+    else if(verb == "attack" || verb == "fight") {attack();}
+    else if(verb == "pickup" || verb == "get" || verb == "take") {pickupItem(object);}
+    else if(verb == "inventory" || verb == "i") {inventory();}
+    else if(verb == "use") {useItem(object);}
+    else if(verb == "equip" || verb == "e") {equip(object);}
+    else if(verb == "stats") {player->displayStats();}
+    else if(verb == "help" || verb == "h" || verb == "?") {help();}
+    else if(verb == "quit" || verb == "exit") {game_over = true;}
 }
 
 
@@ -220,13 +318,11 @@ void Game::pickupItem(const std::string& item_name) {
     // TODO: Pick up item from room
 }
 
-
 // TODO: Implement inventory
 //
 void Game::inventory() {
     // TODO: Display player inventory
 }
-
 
 // TODO: Implement useItem
 // HINTS:

@@ -14,12 +14,12 @@ Briefly describe your key design choices and rationale:
 
 I leaned pretty heavily on Object-Oriented Programming (OOP) to avoid writing duplicate code. By using inheritance, I created base classes like Character and Item so that Player and Monster could share logic (like health and names), while Weapon and Potion could share basic item traits. The real MVP here was polymorphism; using virtual functions like calculateDamage() meant I could treat a Dragon exactly like a Goblin in the combat loop, but the Dragon would still automatically use its special fire damage math without me needing a bunch of messy if-else statements. If I had done this in C, I would have needed complex structs or unions and manual type checking for everything, which would have been a nightmare to debug.
 
-        [Character]                       [Item]
-             ^                               ^
-             |                               | 
-      +------+------+             +----------+----------+
-      |             |             |          |          |
-   [Player]     [Monster]      [Weapon]   [Armor]  [Consumable]
+          [Character]                       [Item]
+               ^                               ^
+               |                               | 
+         +------+------+             +----------+----------+
+         |             |             |          |          |
+      [Player]     [Monster]      [Weapon]   [Armor]  [Consumable]
                     ^
                     |
            [Goblin/Dragon/etc]

@@ -251,6 +251,14 @@ void Game::processCommand(const std::string& command) {
 //
 void Game::move(const std::string& direction) {
     // TODO: Move to adjacent room
+    if(!current_room) {return;}
+    if(current_room->hasMonster()) {cout << "A monster blocks your path!" << endl;}
+    if(current_room->hasExit(direction)) {
+        current_room = current_room->getExit(direction);
+        current_room->display();
+        current_room->markVisited();
+    }
+    else {cout << "You cannot go that way!" << endl;}
 }
 
 
@@ -260,6 +268,8 @@ void Game::move(const std::string& direction) {
 //
 void Game::look() {
     // TODO: Display current room
+    if(!current_room) {return;}
+    current_room->display();
 }
 
 
@@ -271,6 +281,9 @@ void Game::look() {
 //
 void Game::attack() {
     // TODO: Attack monster in room
+    if(!current_room) {return;}
+    if(current_room->hasMonster()) {combat(current_room->getMonster());}
+    else {cout << "There is no monster to fight!" << endl;}
 }
 
 
@@ -302,7 +315,81 @@ void Game::attack() {
 // - Print "=== COMBAT ENDS ==="
 //
 void Game::combat(Monster* monster) {
-    // TODO: Implement turn-based combat
+    // Simple turn-based combat loop
+    if (!player || !monster) return;
+    cout << "=== COMBAT BEGINS ===" << endl;
+
+    while (player->isAlive() && monster->isAlive()) {
+        // Player turn
+        cout << "Your move (attack/use <item>/flee): ";
+        string input;
+        getline(cin, input);
+        // parse verb and object
+        string verb, object;
+        if (input.empty()) { verb = "attack"; }
+        else {
+            istringstream iss(input);
+            iss >> verb;
+            getline(iss, object);
+            // trim leading spaces
+            size_t p = object.find_first_not_of(' ');
+            if (p != string::npos) object = object.substr(p);
+            else object.clear();
+            transform(verb.begin(), verb.end(), verb.begin(), ::tolower);
+            transform(object.begin(), object.end(), object.begin(), ::tolower);
+        }
+
+        if (verb == "use") {
+            if (object.empty()) cout << "Use what?" << endl;
+            else player->useItem(object);
+        } else if (verb == "flee") {
+            cout << "You flee from combat!" << endl;
+            break;
+        } else { // default: attack
+            int dmg = player->calculateDamage();
+            cout << "You attack the " << monster->getName() << " for " << dmg << " damage." << endl;
+            monster->takeDamage(dmg);
+            if (!monster->isAlive()) {
+                cout << "You have defeated the " << monster->getName() << "!" << endl;
+                // rewards
+                int exp = monster->getExperienceReward();
+                int gold = monster->getGoldReward();
+                if (player) player->gainExperience(exp);
+                if (player) player->addGold(gold);
+                cout << "You gain " << exp << " experience and " << gold << " gold." << endl;
+                // collect loot before deleting monster
+                std::vector<Item*> loot = monster->dropLoot();
+                // remove and delete monster via room helper
+                if (current_room) {
+                    // add loot to room
+                    for (size_t i = 0; i < loot.size(); ++i) {
+                        current_room->addItem(loot[i]);
+                    }
+                    // delete monster and clear room pointer
+                    current_room->clearMonster();
+                } else {
+                    // no room reference: delete monster and transfer loot ownership lost
+                    delete monster;
+                }
+                break;
+            }
+        }
+
+        // Monster turn (if still alive)
+        if (monster->isAlive()) {
+            cout << monster->getAttackMessage() << endl;
+            int mdmg = monster->calculateDamage();
+            cout << "The " << monster->getName() << " hits you for " << mdmg << " damage." << endl;
+            player->takeDamage(mdmg);
+            if (!player->isAlive()) {
+                cout << "You have been slain... Game over." << endl;
+                game_over = true;
+                break;
+            }
+        }
+    }
+
+    cout << "=== COMBAT ENDS ===" << endl;
 }
 
 
@@ -315,13 +402,19 @@ void Game::combat(Monster* monster) {
 // - Otherwise print error
 //
 void Game::pickupItem(const std::string& item_name) {
-    // TODO: Pick up item from room
+    if (!current_room || !player) { cout << "Nothing to pick up." << endl; return; }
+    Item* it = current_room->getItem(item_name);
+    if (!it) { cout << "No such item here." << endl; return; }
+    player->addItem(it);
+    current_room->removeItem(item_name); // ownership transferred
+    cout << "You pick up the " << it->getName() << "." << endl;
 }
 
 // TODO: Implement inventory
 //
 void Game::inventory() {
-    // TODO: Display player inventory
+    if (!player) { cout << "You have no inventory." << endl; return; }
+    player->displayInventory();
 }
 
 // TODO: Implement useItem
@@ -329,7 +422,8 @@ void Game::inventory() {
 // - Call player->useItem(item_name)
 //
 void Game::useItem(const std::string& item_name) {
-    // TODO: Use item from inventory
+    if (!player) { cout << "You have no items." << endl; return; }
+    player->useItem(item_name);
 }
 
 
@@ -343,7 +437,17 @@ void Game::useItem(const std::string& item_name) {
 //   - Otherwise: print error (can't equip consumables)
 //
 void Game::equip(const std::string& item_name) {
-    // TODO: Equip weapon or armor
+    if (!player) { cout << "You have nothing to equip." << endl; return; }
+    Item* it = player->getItem(item_name);
+    if (!it) { cout << "You don't have that item." << endl; return; }
+    std::string type = it->getType();
+    if (type == "Weapon") {
+        player->equipWeapon(item_name);
+    } else if (type == "Armor") {
+        player->equipArmor(item_name);
+    } else {
+        cout << "You can't equip that." << endl;
+    }
 }
 
 
@@ -364,5 +468,15 @@ void Game::equip(const std::string& item_name) {
 //   * quit - Exit game
 //
 void Game::help() {
-    // TODO: Display help message
+    cout << "Available commands:" << endl;
+    cout << "  go <direction> - Move (north/south/east/west)" << endl;
+    cout << "  look - Look around" << endl;
+    cout << "  attack - Attack the monster in the room" << endl;
+    cout << "  pickup <item> - Pick up an item" << endl;
+    cout << "  inventory - Show your inventory" << endl;
+    cout << "  use <item> - Use a consumable item" << endl;
+    cout << "  equip <item> - Equip a weapon or armor" << endl;
+    cout << "  stats - Show your character stats" << endl;
+    cout << "  help - Show this help" << endl;
+    cout << "  quit - Exit the game" << endl;
 }

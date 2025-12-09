@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <cctype>
 using namespace std;
 
 // TODO: Implement Game constructor
@@ -57,6 +58,10 @@ void Game::initializeWorld() {
     Room* armory = new Room("Dungeon Armory", "A small storage room filled with weapon and armor stands now mostly abandoned...");
     Room* treasury = new Room("Dungeon Treasury", "A cold stone room filled with chests and finery...");
     Room* throne_room = new Room("Throne Room","A grand hall filled with fractured stone columns and a singular gold laden throne atop a chiseled stair...");
+    Room* graveyard = new Room("Dungeon Graveyard", "A dark ominous field filled with bones...");
+    Room* cellar = new Room("Dungeon Cellar", "A vast wine cellar...");
+    Room* tower = new Room("Dungeon Tower", "A tall winding staircase...");
+
 
     // TODO: Add rooms to world
     addRoom(entrance);
@@ -64,24 +69,37 @@ void Game::initializeWorld() {
     addRoom(armory);
     addRoom(treasury);
     addRoom(throne_room);
+    addRoom(graveyard);
+    addRoom(cellar);
+    addRoom(tower);
 
     // TODO: Connect rooms bidirectionally
     connectRooms(entrance->getName(), "north", hallway->getName());
     connectRooms(hallway->getName(), "west", armory->getName());
     connectRooms(hallway->getName(), "east", treasury->getName());
     connectRooms(hallway->getName(), "north", throne_room->getName());
+    connectRooms(treasury->getName(), "east", graveyard->getName());
+    connectRooms(graveyard->getName(), "east", cellar->getName());
+    connectRooms(cellar->getName(), "east", tower->getName());
 
     // TODO: Add monsters
     hallway->setMonster(new Goblin());
     armory->setMonster(new Skeleton());
     treasury->setMonster(new Skeleton());
     throne_room->setMonster(new Dragon());
+    graveyard->setMonster(new Ghost());
+    cellar->setMonster(new Troll());
+    tower->setMonster(new Wizard());
+
 
     // TODO: Add items
     entrance->addItem(new Consumable("Small Potion", "A small healing potion", 10));
     armory->addItem(new Weapon("Iron Sword", "A sturdy blade", 5));
     armory->addItem(new Armor("Chain Mail", "Heavy protective armor", 3));
     treasury->addItem(new Consumable("Health Potion", "A powerful healing potion", 20));
+    graveyard->addItem(new Consumable("Health Potion", "A powerful healing potion", 20));
+    cellar->addItem(new Consumable("Health Potion", "A powerful healing potion", 20));
+    tower->addItem(new Consumable("Health Potion", "A powerful healing potion", 20));
     
     // TODO: Set starting room
     current_room = entrance;
@@ -167,11 +185,44 @@ void Game::connectRooms(const std::string& room1_name, const std::string& direct
 //
 void Game::run() {
     // TODO: Implement main game loop
-    string playerName, input;
+    string playerName, input, playerClass;
     cout << "-~-~-~-~-~-~-~WELCOME TO THE DUNGEON-~-~-~-~-~-~-~" << endl;
     cout << "What is your name, adventurer? " << endl;
     getline(cin, playerName);
     player = new Player(playerName);
+    cout << "" << endl;
+    cout << "What is your class, adventurer? (Warrior, Mage, Rouge)" << endl;
+    cout << "Warrior (+50HP, +2dmg): You come from a noble background, seeking to do good." << endl;
+    cout << "Mage (+10dmg, -10HP): Your attacks are now magical, but at a steep price." << endl;
+    cout << "Rouge (+5dmg, -1def): You are able to stealthily attack your opponents, but they hit harder too." << endl;
+    do {
+        getline(cin, playerClass);
+        transform(playerClass.begin(), playerClass.end(), playerClass.begin(), ::tolower);
+        
+        if(playerClass == "warrior") {
+            player->setMaxHP(player->getMaxHP() + 50);
+            player->heal(50);
+            player->setAttack(player->getAttack() + 2);
+            cout << "You have selected the Warrior class!" << endl;
+            break;
+        }
+        else if(playerClass == "mage") {
+            player->setAttack(player->getAttack() + 10); 
+            player->setMaxHP(player->getMaxHP() - 10);
+            player->setCurrentHP(90);
+            cout << "You have selected the Mage class!" << endl;
+            break;
+        }
+        else if(playerClass == "rogue") {  
+            player->setAttack(player->getAttack() + 5); 
+            player->setDefense(player->getDefense() - 1);
+            cout << "You have selected the Rogue class!" << endl;
+            break;
+        }
+        else {
+            cout << "Invalid class. Try again (Warrior, Mage, Rogue): ";
+        }
+    } while(true);  // loop until break is hit
     cout << "" << endl;
     initializeWorld();
     createStartingInventory();
@@ -182,7 +233,8 @@ void Game::run() {
         getline(cin, input);
         transform(input.begin(), input.end(), input.begin(), ::tolower);
         processCommand(input);
-        if(!world["Throne_Room"]->getMonster()->isAlive()) {
+        Room* throne = world["Throne Room"];
+        if(throne && throne->getMonster() == NULL) {
             cout << "-~-~-~-~-~-~-~YOU WIN!-~-~-~-~-~-~-~" << endl;
             cout << "ECE 312 Final Project" << endl;
             cout << "Programmed by: Elijah Spadini" << endl;
@@ -359,6 +411,12 @@ void Game::combat(Monster* monster) {
                 cout << "You gain " << exp << " experience and " << gold << " gold." << endl;
                 // collect loot before deleting monster
                 std::vector<Item*> loot = monster->dropLoot();
+                if (!loot.empty()) {
+                    cout << "The " << monster->getName() << " dropped:" << endl;
+                    for (size_t i = 0; i < loot.size(); ++i) {
+                        cout << "  - " << loot[i]->getName() << endl;
+                    }
+                }
                 // remove and delete monster via room helper
                 if (current_room) {
                     // add loot to room

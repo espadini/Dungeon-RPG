@@ -203,6 +203,49 @@ int Dragon::calculateDamage() const {
     int totalDamage = Monster::calculateDamage() + 5;
     return totalDamage;  // REPLACE THIS
 }
+
+Ghost::Ghost()
+    : Monster("Ghost", 40, 8, 6, 70, 10) { //interpreting "evasion" to mean raised defense
+    // TODO: Add loot items
+    addLoot(new Weapon("Ghastly Sword", "An ethereal blade glows in the darkness.", 7));
+    addLoot(new Consumable("Health Potion", "A powerful healing potion", 20));
+    addLoot(new Consumable("Health Potion", "A powerful healing potion", 20));
+
+}
+std::string Ghost::getAttackMessage() const {
+    // TODO: Return skeleton attack message
+    return "The ghost slashes with its sword!"; 
+}
+
+Troll::Troll()
+    : Monster("Troll", 80, 4, 4, 80, 10) {
+    // TODO: Add loot items
+    addLoot(new Armor("Berserker Armor", "A bare curiass filled to the brim with gore.", 6));
+    addLoot(new Consumable("Health Potion", "A powerful healing potion", 20));
+    addLoot(new Consumable("Health Potion", "A powerful healing potion", 20));
+}
+
+std::string Troll::getAttackMessage() const {
+    // TODO: Return skeleton attack message
+    return "The Troll slams into you with its club!"; 
+}
+
+Wizard::Wizard()
+    : Monster("Wizard", 30, 10, 10, 90, 10) { //The Wizard has high magical defense and damage but low hp
+    // TODO: Add loot items
+    addLoot(new Consumable("Greater Health Potion", "Restores 100 HP", 100));
+    addLoot(new Consumable("Greater Health Potion", "Restores 100 HP", 100));
+    addLoot(new Consumable("Greater Health Potion", "Restores 100 HP", 100));
+    addLoot(new Consumable("Greater Health Potion", "Restores 100 HP", 100));
+    addLoot(new Consumable("Greater Health Potion", "Restores 100 HP", 100));
+}
+
+std::string Wizard::getAttackMessage() const {
+    // TODO: Return skeleton attack message
+    return "The Wizard casts magic missile on you!"; 
+}
+
+
 /*
 int main() {
     // Test polymorphism - base class pointers to derived objects

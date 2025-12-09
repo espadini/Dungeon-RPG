@@ -99,4 +99,37 @@ public:
     int calculateDamage() const;
 };
 
+class Ghost : public Monster {
+public:
+    // TODO: Implement in Monster.cpp
+    // HINT: Call Monster constructor with appropriate stats
+    Ghost();
+    
+    // Override attack message
+    // TODO: Implement in Monster.cpp
+    std::string getAttackMessage() const;
+};
+
+class Troll : public Monster {
+public:
+    // TODO: Implement in Monster.cpp
+    // HINT: Call Monster constructor with appropriate stats
+    Troll();
+    
+    // Override attack message
+    // TODO: Implement in Monster.cpp
+    std::string getAttackMessage() const;
+};
+
+class Wizard : public Monster {
+public:
+    // TODO: Implement in Monster.cpp
+    // HINT: Call Monster constructor with appropriate stats
+    Wizard();
+    
+    // Override attack message
+    // TODO: Implement in Monster.cpp
+    std::string getAttackMessage() const;
+};
+
 #endif // MONSTER_H
